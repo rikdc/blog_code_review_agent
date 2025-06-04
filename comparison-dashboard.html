@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Review Comparison Dashboard</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --critical-color: #991b1b;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: var(--bg-white);
+            padding: 2rem 1rem;
+            box-shadow: var(--shadow);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .controls {
+            background: var(--bg-white);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .overview-card {
+            background: var(--bg-white);
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .overview-card h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .overview-card p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .review-panel {
+            background: var(--bg-white);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+            position: relative;
+        }
+
+        .panel-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .reviewer-info {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .winner-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--success-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .panel-content {
+            padding: 1.5rem;
+        }
+
+        .severity-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .severity-item {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 6px;
+            background: var(--bg-light);
+        }
+
+        .severity-item.critical {
+            background: #fef2f2;
+            color: var(--critical-color);
+        }
+
+        .severity-item.high {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .severity-item.medium {
+            background: #fef0cd;
+            color: #d97706;
+        }
+
+        .severity-item.low {
+            background: #f0fdf4;
+            color: #166534;
+        }
+
+        .severity-count {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .severity-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-top: 0.25rem;
+        }
+
+        .issue-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+            cursor: pointer;
+        }
+
+        .section-header h4 {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .expand-icon {
+            transition: transform 0.2s;
+        }
+
+        .section-header.collapsed .expand-icon {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .section-content.collapsed {
+            display: none;
+        }
+
+        .issue-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-light);
+        }
+
+        .issue-item.unique {
+            border-left: 4px solid var(--primary-color);
+            background: #eff6ff;
+        }
+
+        .issue-item.common {
+            border-left: 4px solid var(--warning-color);
+            background: #fffbeb;
+        }
+
+        .issue-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .issue-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .issue-location {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            background: #f3f4f6;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .issue-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .code-snippet {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 0.75rem;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+        }
+
+        .selection-controls {
+            background: var(--bg-white);
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .selection-controls h3 {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .category-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .category-item {
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .category-item:hover {
+            border-color: var(--primary-color);
+        }
+
+        .category-item.selected {
+            border-color: var(--success-color);
+            background: #f0fdf4;
+        }
+
+        .category-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .winner-selection {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .winner-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-light);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .winner-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .winner-btn.selected {
+            background: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+
+        .export-section {
+            background: var(--bg-white);
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .error {
+            background: #fef2f2;
+            color: var(--danger-color);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            border: 1px solid #fecaca;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            
+            .controls, .selection-controls, .export-section {
+                display: none;
+            }
+            
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .review-panel {
+                page-break-inside: avoid;
+                margin-bottom: 2rem;
+                box-shadow: none;
+                border: 1px solid #ccc;
+            }
+            
+            .code-snippet {
+                background: #f5f5f5;
+                color: black;
+                border: 1px solid #ccc;
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-group {
+                justify-content: center;
+            }
+            
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .severity-summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .category-selection {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Code Review Comparison Dashboard</h1>
+        <p>Compare and analyze multiple code review results side by side</p>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <button class="btn btn-primary" onclick="loadReviews()">Load Reviews</button>
+            <button class="btn btn-outline" onclick="toggleExpandAll()">Expand All</button>
+            <button class="btn btn-outline" onclick="toggleCollapseAll()">Collapse All</button>
+        </div>
+        <div class="control-group">
+            <button class="btn btn-outline" onclick="highlightUniqueIssues()">Highlight Unique</button>
+            <button class="btn btn-outline" onclick="highlightCommonIssues()">Highlight Common</button>
+            <button class="btn btn-success" onclick="exportCombinedReview()">Export Best Of</button>
+        </div>
+    </div>
+
+    <div id="overview" class="overview" style="display: none;">
+        <div class="overview-card">
+            <h3 id="totalIssues">0</h3>
+            <p>Total Issues Found</p>
+        </div>
+        <div class="overview-card">
+            <h3 id="uniqueIssues">0</h3>
+            <p>Unique Issues</p>
+        </div>
+        <div class="overview-card">
+            <h3 id="commonIssues">0</h3>
+            <p>Common Issues</p>
+        </div>
+        <div class="overview-card">
+            <h3 id="avgSeverity">-</h3>
+            <p>Avg Severity Score</p>
+        </div>
+    </div>
+
+    <div id="loading" class="loading">
+        <p>Click "Load Reviews" to start comparison...</p>
+    </div>
+
+    <div id="error" class="error" style="display: none;"></div>
+
+    <div id="comparisonGrid" class="comparison-grid" style="display: none;"></div>
+
+    <div id="selectionControls" class="selection-controls" style="display: none;">
+        <h3>Winner Selection</h3>
+        <div id="categorySelection" class="category-selection"></div>
+        <div style="text-align: center; margin-top: 1rem;">
+            <button class="btn btn-success" onclick="saveSelections()">Save Selections</button>
+            <button class="btn btn-outline" onclick="clearSelections()">Clear All</button>
+        </div>
+    </div>
+
+    <div id="exportSection" class="export-section" style="display: none;">
+        <h3>Export Options</h3>
+        <p>Generate a combined "best of" review based on your selections</p>
+        <div style="margin-top: 1rem;">
+            <button class="btn btn-primary" onclick="exportAsMarkdown()">Export as Markdown</button>
+            <button class="btn btn-outline" onclick="exportAsJSON()">Export as JSON</button>
+            <button class="btn btn-outline" onclick="window.print()">Print Report</button>
+        </div>
+    </div>
+
+    <script>
+        let reviewData = [];
+        let allIssues = [];
+        let expandedSections = new Set();
+        let selections = {
+            categories: {},
+            overall: null
+        };
+
+        const severityColors = {
+            'critical': '#991b1b',
+            'high': '#dc2626', 
+            'medium': '#d97706',
+            'low': '#059669'
+        };
+
+        const severityScores = {
+            'critical': 4,
+            'high': 3,
+            'medium': 2,
+            'low': 1
+        };
+
+        async function loadReviews() {
+            try {
+                showLoading();
+                reviewData = [];
+                
+                const reviewFiles = ['review-1.md', 'review-2.md', 'review-3.md'];
+                
+                for (let i = 0; i < reviewFiles.length; i++) {
+                    try {
+                        const response = await fetch(reviewFiles[i]);
+                        if (!response.ok) {
+                            throw new Error(`Failed to load ${reviewFiles[i]}: ${response.status}`);
+                        }
+                        const content = await response.text();
+                        const parsed = parseReviewMarkdown(content, i + 1);
+                        reviewData.push(parsed);
+                    } catch (error) {
+                        console.error(`Error loading ${reviewFiles[i]}:`, error);
+                        showError(`Failed to load ${reviewFiles[i]}. Make sure files are in the same directory and served via HTTP server.`);
+                        return;
+                    }
+                }
+
+                processReviewData();
+                renderDashboard();
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error loading reviews:', error);
+                showError('Failed to load review files. ' + error.message);
+            }
+        }
+
+        function parseReviewMarkdown(content, reviewNumber) {
+            const lines = content.split('\n');
+            const review = {
+                id: reviewNumber,
+                title: `Review ${reviewNumber}`,
+                issues: [],
+                categories: new Set(),
+                severityCounts: { critical: 0, high: 0, medium: 0, low: 0 }
+            };
+
+            let currentIssue = null;
+            let inCodeBlock = false;
+            let codeContent = '';
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+
+                // Skip empty lines
+                if (!line) continue;
+
+                // Handle code blocks
+                if (line.startsWith('```')) {
+                    if (inCodeBlock) {
+                        if (currentIssue) {
+                            currentIssue.codeSnippet = codeContent.trim();
+                        }
+                        codeContent = '';
+                        inCodeBlock = false;
+                    } else {
+                        inCodeBlock = true;
+                        codeContent = '';
+                    }
+                    continue;
+                }
+
+                if (inCodeBlock) {
+                    codeContent += line + '\n';
+                    continue;
+                }
+
+                // Parse issue headers
+                const issueMatch = line.match(/^#{4}\s*(\d+)\.\s*(.+)/); // #### 1. Issue Title
+                if (issueMatch) {
+                    if (currentIssue) {
+                        review.issues.push(currentIssue);
+                    }
+                    
+                    currentIssue = {
+                        id: `issue-${reviewNumber}-${issueMatch[1]}`,
+                        title: issueMatch[2].replace(/[🔴🟠🟡🟢🔵]/g, '').trim(),
+                        description: '',
+                        location: '',
+                        severity: 'medium',
+                        category: 'General',
+                        codeSnippet: '',
+                        remediation: ''
+                    };
+                    continue;
+                }
+
+                // Parse location
+                const locationMatch = line.match(/\*\*(?:Location|File):\*\*\s*`?([^`\n]+)`?/);
+                if (locationMatch && currentIssue) {
+                    currentIssue.location = locationMatch[1];
+                    continue;
+                }
+
+                // Parse severity
+                const severityMatch = line.match(/\*\*(?:Risk Level|Severity):\*\*\s*(\w+)/i);
+                if (severityMatch && currentIssue) {
+                    currentIssue.severity = severityMatch[1].toLowerCase();
+                    review.severityCounts[currentIssue.severity]++;
+                    continue;
+                }
+
+                // Parse issue description
+                if (line.startsWith('**Issue:**') && currentIssue) {
+                    currentIssue.description = line.replace('**Issue:**', '').trim();
+                    continue;
+                }
+
+                // Parse category from section headers
+                const categoryMatch = line.match(/^#{3}\s*[🔴🟠🟡🟢🔵]?\s*(.+)/);
+                if (categoryMatch) {
+                    const category = categoryMatch[1].replace(/Issues?|\(.*\)/g, '').trim();
+                    review.categories.add(category);
+                    if (currentIssue) {
+                        currentIssue.category = category;
+                    }
+                    continue;
+                }
+
+                // Collect other content as description
+                if (currentIssue && line && !line.startsWith('**') && !line.startsWith('#')) {
+                    if (currentIssue.description) {
+                        currentIssue.description += ' ' + line;
+                    } else {
+                        currentIssue.description = line;
+                    }
+                }
+            }
+
+            // Add the last issue
+            if (currentIssue) {
+                review.issues.push(currentIssue);
+            }
+
+            return review;
+        }
+
+        function processReviewData() {
+            // Calculate unique and common issues
+            allIssues = [];
+            reviewData.forEach(review => {
+                review.issues.forEach(issue => {
+                    const similarIssues = findSimilarIssues(issue, allIssues);
+                    if (similarIssues.length === 0) {
+                        issue.isUnique = true;
+                        issue.reviewers = [review.id];
+                        allIssues.push(issue);
+                    } else {
+                        similarIssues[0].reviewers.push(review.id);
+                        similarIssues[0].isUnique = false;
+                        issue.isCommon = true;
+                    }
+                });
+            });
+
+            // Update overview stats
+            const totalIssues = reviewData.reduce((sum, review) => sum + review.issues.length, 0);
+            const uniqueIssues = allIssues.filter(issue => issue.isUnique).length;
+            const commonIssues = allIssues.filter(issue => !issue.isUnique).length;
+            
+            let avgSeverityScore = 0;
+            if (allIssues.length > 0) {
+                const totalScore = allIssues.reduce((sum, issue) => sum + severityScores[issue.severity], 0);
+                avgSeverityScore = (totalScore / allIssues.length).toFixed(1);
+            }
+
+            document.getElementById('totalIssues').textContent = totalIssues;
+            document.getElementById('uniqueIssues').textContent = uniqueIssues;
+            document.getElementById('commonIssues').textContent = commonIssues;
+            document.getElementById('avgSeverity').textContent = avgSeverityScore;
+        }
+
+        function findSimilarIssues(issue, issueList) {
+            return issueList.filter(existingIssue => {
+                const titleSimilarity = calculateSimilarity(issue.title, existingIssue.title);
+                const locationSimilarity = issue.location && existingIssue.location ? 
+                    calculateSimilarity(issue.location, existingIssue.location) : 0;
+                
+                return titleSimilarity > 0.6 || locationSimilarity > 0.8;
+            });
+        }
+
+        function calculateSimilarity(str1, str2) {
+            const words1 = str1.toLowerCase().split(/\s+/);
+            const words2 = str2.toLowerCase().split(/\s+/);
+            const commonWords = words1.filter(word => words2.includes(word));
+            return commonWords.length / Math.max(words1.length, words2.length);
+        }
+
+        function renderDashboard() {
+            const grid = document.getElementById('comparisonGrid');
+            grid.innerHTML = '';
+
+            reviewData.forEach(review => {
+                const panel = createReviewPanel(review);
+                grid.appendChild(panel);
+            });
+
+            // Show all sections
+            document.getElementById('overview').style.display = 'grid';
+            document.getElementById('comparisonGrid').style.display = 'grid';
+            document.getElementById('selectionControls').style.display = 'block';
+            document.getElementById('exportSection').style.display = 'block';
+
+            // Initialize category selection
+            renderCategorySelection();
+        }
+
+        function createReviewPanel(review) {
+            const panel = document.createElement('div');
+            panel.className = 'review-panel';
+            panel.innerHTML = `
+                <div class="panel-header">
+                    <h2>${review.title}</h2>
+                    <div class="reviewer-info">
+                        ${review.issues.length} issues found across ${review.categories.size} categories
+                    </div>
+                    ${selections.overall === review.id ? '<div class="winner-badge">Overall Winner</div>' : ''}
+                </div>
+                <div class="panel-content">
+                    <div class="severity-summary">
+                        <div class="severity-item critical">
+                            <div class="severity-count">${review.severityCounts.critical}</div>
+                            <div class="severity-label">Critical</div>
+                        </div>
+                        <div class="severity-item high">
+                            <div class="severity-count">${review.severityCounts.high}</div>
+                            <div class="severity-label">High</div>
+                        </div>
+                        <div class="severity-item medium">
+                            <div class="severity-count">${review.severityCounts.medium}</div>
+                            <div class="severity-label">Medium</div>
+                        </div>
+                        <div class="severity-item low">
+                            <div class="severity-count">${review.severityCounts.low}</div>
+                            <div class="severity-label">Low</div>
+                        </div>
+                    </div>
+                    ${renderIssuesByCategory(review)}
+                </div>
+            `;
+            return panel;
+        }
+
+        function renderIssuesByCategory(review) {
+            const categories = Array.from(review.categories);
+            return categories.map(category => {
+                const categoryIssues = review.issues.filter(issue => issue.category === category);
+                const sectionId = `section-${review.id}-${category.replace(/\s+/g, '-')}`;
+                const isExpanded = expandedSections.has(sectionId);
+                
+                return `
+                    <div class="issue-section">
+                        <div class="section-header ${isExpanded ? '' : 'collapsed'}" onclick="toggleSection('${sectionId}')">
+                            <h4>${category} (${categoryIssues.length})</h4>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="section-content ${isExpanded ? '' : 'collapsed'}" id="${sectionId}">
+                            ${categoryIssues.map(issue => renderIssueItem(issue)).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderIssueItem(issue) {
+            const uniqueClass = issue.isUnique ? 'unique' : (issue.isCommon ? 'common' : '');
+            return `
+                <div class="issue-item ${uniqueClass}">
+                    <div class="issue-header">
+                        <div class="issue-title">${issue.title}</div>
+                        ${issue.location ? `<div class="issue-location">${issue.location}</div>` : ''}
+                    </div>
+                    <div class="issue-description">${issue.description}</div>
+                    ${issue.codeSnippet ? `<div class="code-snippet">${escapeHtml(issue.codeSnippet)}</div>` : ''}
+                </div>
+            `;
+        }
+
+        function renderCategorySelection() {
+            const categories = new Set();
+            reviewData.forEach(review => {
+                review.categories.forEach(cat => categories.add(cat));
+            });
+
+            const selection = document.getElementById('categorySelection');
+            selection.innerHTML = Array.from(categories).map(category => `
+                <div class="category-item" id="cat-${category.replace(/\s+/g, '-')}">
+                    <div class="category-title">${category}</div>
+                    <div class="winner-selection">
+                        ${reviewData.map(review => `
+                            <button class="winner-btn" onclick="selectWinner('${category}', ${review.id})">
+                                Review ${review.id}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleSection(sectionId) {
+            const header = document.querySelector(`[onclick="toggleSection('${sectionId}')"]`);
+            const content = document.getElementById(sectionId);
+            
+            if (expandedSections.has(sectionId)) {
+                expandedSections.delete(sectionId);
+                header.classList.add('collapsed');
+                content.classList.add('collapsed');
+            } else {
+                expandedSections.add(sectionId);
+                header.classList.remove('collapsed');
+                content.classList.remove('collapsed');
+            }
+        }
+
+        function toggleExpandAll() {
+            document.querySelectorAll('.section-header').forEach(header => {
+                const sectionId = header.onclick.toString().match(/'([^']+)'/)[1];
+                if (!expandedSections.has(sectionId)) {
+                    expandedSections.add(sectionId);
+                    header.classList.remove('collapsed');
+                    document.getElementById(sectionId).classList.remove('collapsed');
+                }
+            });
+        }
+
+        function toggleCollapseAll() {
+            document.querySelectorAll('.section-header').forEach(header => {
+                const sectionId = header.onclick.toString().match(/'([^']+)'/)[1];
+                expandedSections.delete(sectionId);
+                header.classList.add('collapsed');
+                document.getElementById(sectionId).classList.add('collapsed');
+            });
+        }
+
+        function highlightUniqueIssues() {
+            document.querySelectorAll('.issue-item').forEach(item => {
+                item.style.opacity = item.classList.contains('unique') ? '1' : '0.3';
+            });
+        }
+
+        function highlightCommonIssues() {
+            document.querySelectorAll('.issue-item').forEach(item => {
+                item.style.opacity = item.classList.contains('common') ? '1' : '0.3';
+            });
+        }
+
+        function selectWinner(category, reviewId) {
+            selections.categories[category] = reviewId;
+            
+            // Update UI
+            const categoryElement = document.getElementById(`cat-${category.replace(/\s+/g, '-')}`);
+            categoryElement.querySelectorAll('.winner-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            categoryElement.querySelector(`[onclick="selectWinner('${category}', ${reviewId})"]`).classList.add('selected');
+            categoryElement.classList.add('selected');
+        }
+
+        function saveSelections() {
+            localStorage.setItem('reviewSelections', JSON.stringify(selections));
+            alert('Selections saved successfully!');
+        }
+
+        function clearSelections() {
+            selections = { categories: {}, overall: null };
+            document.querySelectorAll('.category-item').forEach(item => {
+                item.classList.remove('selected');
+                item.querySelectorAll('.winner-btn').forEach(btn => btn.classList.remove('selected'));
+            });
+            localStorage.removeItem('reviewSelections');
+        }
+
+        function exportCombinedReview() {
+            const combined = generateCombinedReview();
+            downloadFile('combined-review.md', combined, 'text/markdown');
+        }
+
+        function exportAsMarkdown() {
+            const combined = generateCombinedReview();
+            downloadFile('best-of-review.md', combined, 'text/markdown');
+        }
+
+        function exportAsJSON() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                selections: selections,
+                reviews: reviewData,
+                combined: generateCombinedReviewData()
+            };
+            downloadFile('review-comparison.json', JSON.stringify(data, null, 2), 'application/json');
+        }
+
+        function generateCombinedReview() {
+            const timestamp = new Date().toLocaleDateString();
+            let markdown = `# Combined Code Review Report\n\n`;
+            markdown += `**Generated:** ${timestamp}\n`;
+            markdown += `**Source Reviews:** ${reviewData.length} reviews compared\n\n`;
+            
+            markdown += `## Executive Summary\n\n`;
+            markdown += `This report combines the best findings from ${reviewData.length} independent code reviews. `;
+            markdown += `Issues have been selected based on reviewer expertise and issue coverage.\n\n`;
+            
+            // Add selected issues by category
+            Object.keys(selections.categories).forEach(category => {
+                const reviewId = selections.categories[category];
+                const review = reviewData.find(r => r.id === reviewId);
+                const categoryIssues = review.issues.filter(issue => issue.category === category);
+                
+                if (categoryIssues.length > 0) {
+                    markdown += `## ${category}\n\n`;
+                    markdown += `*Selected from Review ${reviewId}*\n\n`;
+                    
+                    categoryIssues.forEach((issue, index) => {
+                        markdown += `### ${index + 1}. ${issue.title}\n`;
+                        markdown += `**Location:** \`${issue.location}\`\n`;
+                        markdown += `**Severity:** ${issue.severity}\n\n`;
+                        markdown += `${issue.description}\n\n`;
+                        
+                        if (issue.codeSnippet) {
+                            markdown += `\`\`\`javascript\n${issue.codeSnippet}\n\`\`\`\n\n`;
+                        }
+                        
+                        markdown += `---\n\n`;
+                    });
+                }
+            });
+            
+            return markdown;
+        }
+
+        function generateCombinedReviewData() {
+            const combined = {
+                categories: {},
+                totalIssues: 0,
+                severityBreakdown: { critical: 0, high: 0, medium: 0, low: 0 }
+            };
+            
+            Object.keys(selections.categories).forEach(category => {
+                const reviewId = selections.categories[category];
+                const review = reviewData.find(r => r.id === reviewId);
+                const categoryIssues = review.issues.filter(issue => issue.category === category);
+                
+                combined.categories[category] = {
+                    selectedReview: reviewId,
+                    issues: categoryIssues
+                };
+                
+                combined.totalIssues += categoryIssues.length;
+                categoryIssues.forEach(issue => {
+                    combined.severityBreakdown[issue.severity]++;
+                });
+            });
+            
+            return combined;
+        }
+
+        function downloadFile(filename, content, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('error').textContent = message;
+            document.getElementById('error').style.display = 'block';
+            hideLoading();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load saved selections on page load
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('reviewSelections');
+            if (saved) {
+                selections = JSON.parse(saved);
+            }
+        });
+    </script>
+</body>
+</html>
